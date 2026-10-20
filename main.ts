@@ -936,6 +936,7 @@ let nextMonster = 0
 let monsterWarned = false
 let monsterDir = -1
 let lockedMsgAt = 0
+let levelStartScore = 0
 let boss: Sprite = null
 let farLayer: Image = null
 let nearLayer: Image = null
@@ -1157,6 +1158,10 @@ function loadLevel(n: number) {
     safeX = player.x
     safeY = player.y
     setStr(player, "anim", "")
+    attackUntil = 0
+    hurtUntil = 0
+    invulnUntil = 0
+    levelStartScore = info.score()
 
     game.showLongText(L.name + "\n\n" + L.story, DialogLayout.Center)
     levelBusy = false
@@ -1268,10 +1273,23 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Food, function (p: Sprite, m: Sp
     catchPrey(m)
 })
 
+// Out of lives? StarClan sends Fireheart back to the start of the SAME level
+// (with full lives) instead of ending the game.
 info.onLifeZero(function () {
-    game.splash("Fireheart has gone", "to join StarClan...")
-    game.over(false)
+    if (levelBusy) return
+    levelBusy = true
+    control.runInParallel(retryLevel)
 })
+
+function retryLevel() {
+    player.vx = 0
+    sfx(music.wawawawaa)
+    pause(600)
+    game.splash("Fireheart has fallen...", "StarClan sends you back!")
+    info.setLife(5)
+    info.setScore(levelStartScore)
+    loadLevel(currentLevel)
+}
 
 game.onUpdate(function () {
     if (levelBusy || !player) return
